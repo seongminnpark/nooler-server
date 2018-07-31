@@ -89,3 +89,5 @@ buck-out/
 *.log
 *.sql
 *.sqlite
+
+configs/
