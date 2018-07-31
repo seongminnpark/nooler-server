@@ -2,23 +2,22 @@ package main
 
 import (
 	"fmt"
-	// "html"
 	"log"
 	"net/http"
 	"path"
 	"strings"
+	"database/sql"
+	"github.com/gorilla/mux"
+	_ "github.com/go-sql-driver/mysql"
 )
 
-func ShiftPath(p string) (head, tail string) {
-	fmt.Printf(p);
-	p = path.Clean("/" + p)
-	fmt.Printf(p);
-	i := strings.Index(p[1:], "/") + 1
-	if i <= 0 {
-		return p[1:], "/"
-	}
-	return p[1:i], p[i:]
+type App struct {
+	Router *mux.Router
+	DB     *sql.DB
 }
+
+func (a *App) Initialize(user, password, dbname string) { }
+func (a *App) Run(addr string) { }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	param := r.URL.Path[6:]
@@ -41,8 +40,6 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/user", userHandler)
-
-	log.Fatal(http.ListenAndServe(":2441", mux))
+	a := App()
+	a.initialize("", "", "")
 }
