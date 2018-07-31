@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/seongminnpark/nooler-server/internal/pkg/model"
+	"github.com/seongminnpark/nooler-server/internal/pkg/util"
 )
 
 type App struct {
@@ -84,12 +85,24 @@ func (app *App) getUsers(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
+
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	defer r.Body.Close()
+
+	var newUUID string
+
+	// Create new uuid for user.
+	newUUID, uuidErr := util.CreateUUID()
+	if uuidErr != nil {
+		respondWithError(w, http.StatusInternalServerError, uuidErr.Error())
+		return
+	}
+	user.UUID = newUUID
+
 	if err := user.CreateUser(app.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return

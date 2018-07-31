@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS users
 (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	email VARCHAR(50) NOT NULL,
-	uuid BINARY(16) NOT NULL,
+	uuid VARCHAR(36) NOT NULL,
 	token TEXT
 )`
 
@@ -114,8 +114,8 @@ func TestCreateUser(t *testing.T) {
 	if m["email"] != "test@test.com" {
 		t.Errorf("Expected user email to be 'test@test.com'. Got '%v'", m["email"])
 	}
-	if m["token"] != nil {
-		t.Errorf("Expected user token to be non empty.")
+	if m["uuid"] == nil {
+		t.Errorf("Expected user uuid to be non empty.")
 	}
 	// the id is compared to 1.0 because JSON unmarshaling converts numbers to
 	// floats, when the target is a map[string]interface{}
@@ -127,7 +127,9 @@ func TestCreateUser(t *testing.T) {
 func TestGetUser(t *testing.T) {
 	clearTable()
 
-	addUsers(1)
+	if err := addUsers(1); err != nil {
+		t.Errorf("Error while adding users.")
+	}
 
 	req, _ := http.NewRequest("GET", "/user/1", nil)
 	response := executeRequest(req)
@@ -135,25 +137,32 @@ func TestGetUser(t *testing.T) {
 	checkResponseCode(t, http.StatusOK, response.Code)
 }
 
-func addUsers(count int) {
+func addUsers(count int) error {
 	if count < 1 {
 		count = 1
 	}
 
 	for i := 0; i < count; i++ {
 		stringI := strconv.Itoa(i)
-		email := "user" + stringI + "test.com"
+		email := "user" + stringI + "@test.com"
 		uuid := "Uuid" + stringI
 		token := "test_token"
-		statement := fmt.Sprintf("INSERT INTO users(email, uuid, token) VALUES('%s', %s, %s)", email, uuid, token)
-		app.DB.Exec(statement)
+		statement := fmt.Sprintf("INSERT INTO users(email, uuid, token) VALUES('%s', '%s', '%s')", email, uuid, token)
+
+		if _, err := app.DB.Exec(statement); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func TestUpdateUser(t *testing.T) {
 	clearTable()
 
-	addUsers(1)
+	if err := addUsers(1); err != nil {
+		t.Errorf("Error while adding users.")
+	}
 
 	req, _ := http.NewRequest("GET", "/user/1", nil)
 	response := executeRequest(req)
@@ -169,7 +178,8 @@ func TestUpdateUser(t *testing.T) {
 
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
-
+	fmt.Println(originalUser)
+	fmt.Println(m)
 	if m["id"] != originalUser["id"] {
 		t.Errorf("Expected the id to remain the same (%v). Got %v", originalUser["id"], m["id"])
 	}
@@ -187,7 +197,9 @@ func TestUpdateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	clearTable()
 
-	addUsers(1)
+	if err := addUsers(1); err != nil {
+		t.Errorf("Error while adding users.")
+	}
 
 	req, _ := http.NewRequest("GET", "/user/1", nil)
 	response := executeRequest(req)
