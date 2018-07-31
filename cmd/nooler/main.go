@@ -1,46 +1,27 @@
 package main
 
 import (
-	"io/ioutil"
-	"encoding/json"
-	"errors"
-	
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/seongminnpark/nooler-server/internal/app/nooler"
 )
 
-const CONFIG_PATH string = ""
-
-const DB_CONFIG_ENV = CONFIG_PATH + "/db.json"
-
-type dbManager struct {
-	dbName   string `json: "db_name"`
-	username string `json: "username"`
-	password string `json: "password"`
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
- 	return !os.IsNotExist(err)
-}
-
-func loadDbManager() (dbManager, error) {
-
-	if fileExists(DB_CONFIG_PATH) {
-		return , nil
-
-	} else if fileExists(DB_DEFULATS_PATH) {
-		return , nil
-
-	} else {
-		return nil, errors.New("DB config file does not exist! Make sure you have db.json in /configs.")
-	}
-}
-
 func main() {
-	a := App()
 
-	manager := loadDbManager()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	a.Initialize(manager.username, manager.password, manager.dbName)
+	dbName := os.Getenv("DB_NAME")
+	dbUsername := os.Getenv("DB_USERNAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+
+	a := nooler.App()
+
+	a.Initialize(dbUsername, dbPassword, dbName)
 
 	a.Run(":2441")
 }
