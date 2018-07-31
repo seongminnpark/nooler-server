@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("Error loading .env file")
 	}
 
-	dbName := os.Getenv("DB_NAME")
+	dbName := os.Getenv("TEST_DB_NAME")
 	dbUsername := os.Getenv("DB_USERNAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
