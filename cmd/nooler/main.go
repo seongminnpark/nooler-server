@@ -19,9 +19,9 @@ func main() {
 	dbUsername := os.Getenv("DB_USERNAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	a := nooler.App()
+	app := nooler.App{}
 
-	a.Initialize(dbUsername, dbPassword, dbName)
+	app.Initialize(dbUsername, dbPassword, dbName)
 
-	a.Run(":2441")
+	app.Run(":2441")
 }

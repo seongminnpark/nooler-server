@@ -14,13 +14,13 @@ type App struct {
 	DB     *sql.DB
 }
 
-func (a *App) Initialize(user, password, dbName string) {
+func (app *App) Initialize(user, password, dbName string) {
 	connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbName)
 	var err error
-	a.DB, err = sql.Open("mysql", connectionString)
+	app.DB, err = sql.Open("mysql", connectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Router = mux.NewRouter()
+	app.Router = mux.NewRouter()
 }
-func (a *App) Run(addr string) {}
+func (app *App) Run(addr string) {}
