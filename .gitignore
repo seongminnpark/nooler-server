@@ -90,4 +90,4 @@ buck-out/
 *.sql
 *.sqlite
 
-configs/
+configs/db.json
