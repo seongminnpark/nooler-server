@@ -3,6 +3,5 @@ Remote Alarm System
 
 ## Testing
 ```
-cd test
-go test -v
+go test -v ./test
 ```
