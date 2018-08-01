@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -102,6 +103,19 @@ func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.UUID = newUUID
+
+	// Create new token for user.
+	claims := make(map[string]interface{})
+	claims["admin"] = true
+	claims["uuid"] = user.UUID
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+	newToken, tokenErr := util.GenerateToken("secret", claims)
+	if tokenErr != nil {
+		respondWithError(w, http.StatusInternalServerError, tokenErr.Error())
+		return
+	}
+	user.Token = newToken
 
 	if err := user.CreateUser(app.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
