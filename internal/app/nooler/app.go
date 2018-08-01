@@ -41,7 +41,7 @@ func (app *App) initializeRoutes() {
 	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
 	app.Router.HandleFunc("/user", app.getUser).Methods("GET")
 	app.Router.HandleFunc("/user", app.updateUser).Methods("PUT")
-	app.Router.HandleFunc("/user/{id:[0-9]+}", app.deleteUser).Methods("DELETE")
+	app.Router.HandleFunc("/user", app.deleteUser).Methods("DELETE")
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
@@ -66,7 +66,7 @@ func (app *App) getUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch user information.
-	user := model.User{UUID: token.UUID, Token: tokenHeader}
+	user := model.User{UUID: token.UUID}
 	if err := user.GetUser(app.DB); err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -110,9 +110,9 @@ func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	// Extract parameters.
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+	// Extract and validate parameters.
+	// email := r.FormValue("email")
+	// password := r.FormValue("password")
 
 	// Create new uuid for user.
 	var newUUID string
@@ -134,15 +134,15 @@ func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, encodeErr.Error())
 		return
 	}
-	user.Token = tokenString
 
+	// Create new user.
 	if err := user.CreateUser(app.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	responseJSON := make(map[string]string)
-	responseJSON["token"] = user.Token
+	responseJSON["token"] = tokenString
 	respondWithJSON(w, http.StatusCreated, responseJSON)
 }
 
@@ -157,8 +157,8 @@ func (app *App) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract parameters.
-	email := r.FormValue("email")
+	// Extract and validate parameters.
+	// email := r.FormValue("email")
 
 	// Cast user info from request to user object.
 	var user model.User
@@ -177,18 +177,27 @@ func (app *App) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseJSON := make(map[string]string)
-	responseJSON["token"] = token.Encode()
+	tokenString, encodeErr := token.Encode()
+	if encodeErr != nil {
+		respondWithError(w, http.StatusInternalServerError, encodeErr.Error())
+		return
+	}
+	responseJSON["token"] = tokenString
 	respondWithJSON(w, http.StatusOK, responseJSON)
 }
 
 func (app *App) deleteUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid User ID")
+	// Validate token.
+	tokenHeader := r.Header.Get("access_token")
+	var token *model.Token
+	var tokenErr error
+	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
-	user := model.User{ID: id}
+
+	// Delete
+	user := model.User{UUID: token.UUID}
 	if err := user.DeleteUser(app.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
