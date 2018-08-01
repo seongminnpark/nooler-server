@@ -58,7 +58,8 @@ func (app *App) getUser(w http.ResponseWriter, r *http.Request) {
 	tokenHeader := r.Header.Get("access_token")
 
 	// Extract uuid from token.
-	var token model.Token
+	var token *model.Token
+	var tokenErr error
 	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
@@ -123,12 +124,12 @@ func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 	user.UUID = newUUID
 
 	// Generate new token.
-	token = model.Token{
+	token := model.Token{
 		UUID: user.UUID,
 		Exp:  time.Now().Add(time.Hour * 24).Unix()}
 
 	// Encode into string.
-	tokenString, encodeErr := token.Encode("secret", claims)
+	tokenString, encodeErr := token.Encode()
 	if encodeErr != nil {
 		respondWithError(w, http.StatusInternalServerError, encodeErr.Error())
 		return
@@ -149,7 +150,7 @@ func (app *App) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Validate token.
 	tokenHeader := r.Header.Get("access_token")
-	var token model.Token
+	var token *model.Token
 	var tokenErr error
 	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid token")
@@ -168,7 +169,7 @@ func (app *App) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	user.uuid = token.uuid
+	user.UUID = token.UUID
 
 	if err := user.UpdateUser(app.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
