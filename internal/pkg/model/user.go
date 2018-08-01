@@ -13,18 +13,18 @@ type User struct {
 }
 
 func (user *User) GetUser(db *sql.DB) error {
-	statement := fmt.Sprintf("SELECT email, token FROM users WHERE id=%d", user.ID)
+	statement := fmt.Sprintf("SELECT email, token FROM users WHERE token=%s", user.UUID)
 	return db.QueryRow(statement).Scan(&user.Email, &user.Token)
 }
 
 func (user *User) UpdateUser(db *sql.DB) error {
-	statement := fmt.Sprintf("UPDATE users SET email='%s' WHERE id=%d", user.Email, user.ID)
+	statement := fmt.Sprintf("UPDATE users SET email='%s' WHERE uuid=%s", user.Email, user.UUID)
 	_, err := db.Exec(statement)
 	return err
 }
 
 func (user *User) DeleteUser(db *sql.DB) error {
-	statement := fmt.Sprintf("DELETE FROM users WHERE id=%d", user.ID)
+	statement := fmt.Sprintf("DELETE FROM users WHERE uuid=%s", user.UUID)
 	_, err := db.Exec(statement)
 	return err
 }

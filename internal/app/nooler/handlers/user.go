@@ -1,58 +1,16 @@
-package nooler
+package handlers
 
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/seongminnpark/nooler-server/internal/pkg/model"
 	"github.com/seongminnpark/nooler-server/internal/pkg/util"
 )
-
-type App struct {
-	Router *mux.Router
-	DB     *sql.DB
-}
-
-func (app *App) Initialize(user, password, dbName string) {
-	connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbName)
-	var err error
-	app.DB, err = sql.Open("mysql", connectionString)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	app.Router = mux.NewRouter()
-	app.initializeRoutes()
-}
-
-func (app *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(addr, app.Router))
-}
-
-func (app *App) initializeRoutes() {
-	app.Router.HandleFunc("/users", app.getUsers).Methods("GET")
-	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
-	app.Router.HandleFunc("/user", app.getUser).Methods("GET")
-	app.Router.HandleFunc("/user", app.updateUser).Methods("PUT")
-	app.Router.HandleFunc("/user/{id:[0-9]+}", app.deleteUser).Methods("DELETE")
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
-}
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
-}
 
 func (app *App) getUser(w http.ResponseWriter, r *http.Request) {
 	tokenHeader := r.Header.Get("access_token")
@@ -63,7 +21,7 @@ func (app *App) getUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
-
+	
 	// Fetch user information.
 	user := model.User{UUID: token.UUID, Token: tokenHeader}
 	if err := user.GetUser(app.DB); err != nil {
@@ -99,7 +57,7 @@ func (app *App) getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
-
+	
 	// Cast user info from request to user object.
 	var user model.User
 	decoder := json.NewDecoder(r.Body)
@@ -123,9 +81,10 @@ func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
 	user.UUID = newUUID
 
 	// Generate new token.
-	token = model.Token{
-		UUID: user.UUID,
-		Exp:  time.Now().Add(time.Hour * 24).Unix()}
+	token = model.Token {
+		UUID : user.UUID
+		Exp : time.Now().Add(time.Hour * 24).Unix()
+	}
 
 	// Encode into string.
 	tokenString, encodeErr := token.Encode("secret", claims)
