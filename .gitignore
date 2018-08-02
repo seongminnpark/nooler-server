@@ -91,3 +91,4 @@ buck-out/
 *.sqlite
 
 configs/db.json
+nooler
