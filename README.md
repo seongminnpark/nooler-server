@@ -8,12 +8,9 @@ sudo service mysql start
 ```
 
 ## Running 
-Build command (at poject root directory):
+Build and run (at project root):
 ```
 go build -o ./nooler ./cmd/nooler/main.go
-```
-Run compiled binary:
-```
 ./nooler
 ```
 
