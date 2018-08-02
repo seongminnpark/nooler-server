@@ -49,6 +49,17 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Check if new info is valid.
+	if !util.ValidEmail(form.Email) {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid email")
+		return
+	}
+
+	if !util.ValidPassword(form.Password) {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid password")
+		return
+	}
+
 	// Chcek if user by email already exists.
 	var existingUser model.User
 	existingUser.Email = form.Email
