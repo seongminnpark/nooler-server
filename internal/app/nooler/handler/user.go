@@ -1,154 +1,194 @@
-package nooler
+package handler
 
-// import (
-// 	"database/sql"
-// 	"encoding/json"
-// 	"net/http"
-// 	"strconv"
-// 	"time"
+import (
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
 
-// 	"github.com/gorilla/mux"
-// 	"github.com/seongminnpark/nooler-server/internal/pkg/model"
-// 	"github.com/seongminnpark/nooler-server/internal/pkg/util"
-// )
+	"github.com/seongminnpark/nooler-server/internal/pkg/model"
+	"github.com/seongminnpark/nooler-server/internal/pkg/util"
+)
 
-// func (app *App) getUser(w http.ResponseWriter, r *http.Request) {
-// 	tokenHeader := r.Header.Get("access_token")
+type UserHandler struct {
+	DB *sql.DB
+}
 
-// 	// Extract uuid from token.
-// 	var token model.Token
-// 	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
-// 		respondWithError(w, http.StatusUnauthorized, "Invalid token")
-// 		return
-// 	}
+func (handler *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
+	tokenHeader := r.Header.Get("access_token")
 
-// 	// Fetch user information.
-// 	user := model.User{UUID: token.UUID, Token: tokenHeader}
-// 	if err := user.GetUser(app.DB); err != nil {
-// 		switch err {
-// 		case sql.ErrNoRows:
-// 			respondWithError(w, http.StatusNotFound, "User not found")
-// 		default:
-// 			respondWithError(w, http.StatusInternalServerError, err.Error())
-// 		}
-// 		return
-// 	}
-// 	respondWithJSON(w, http.StatusOK, user)
-// }
+	// Extract uuid from token.
+	var token *model.Token
+	var tokenErr error
+	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
 
-// func (app *App) getUsers(w http.ResponseWriter, r *http.Request) {
-// 	count, _ := strconv.Atoi(r.FormValue("count"))
-// 	start, _ := strconv.Atoi(r.FormValue("start"))
+	// Fetch user information.
+	user := model.User{UUID: token.UUID}
+	if err := user.GetUser(handler.DB); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			util.RespondWithError(w, http.StatusNotFound, "User not found")
+		default:
+			util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	util.RespondWithJSON(w, http.StatusOK, user)
+}
 
-// 	if count > 10 || count < 1 {
-// 		count = 10
-// 	}
+func (handler *UserHandler) getUsers(w http.ResponseWriter, r *http.Request) {
+	count, _ := strconv.Atoi(r.FormValue("count"))
+	start, _ := strconv.Atoi(r.FormValue("start"))
 
-// 	if start < 0 {
-// 		start = 0
-// 	}
+	if count > 10 || count < 1 {
+		count = 10
+	}
 
-// 	users, err := model.GetUsers(app.DB, start, count)
-// 	if err != nil {
-// 		respondWithError(w, http.StatusInternalServerError, err.Error())
-// 		return
-// 	}
-// 	respondWithJSON(w, http.StatusOK, users)
-// }
+	if start < 0 {
+		start = 0
+	}
 
-// func (app *App) createUser(w http.ResponseWriter, r *http.Request) {
+	users, err := model.GetUsers(handler.DB, start, count)
+	if err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	util.RespondWithJSON(w, http.StatusOK, users)
+}
 
-// 	// Cast user info from request to user object.
-// 	var user model.User
-// 	decoder := json.NewDecoder(r.Body)
-// 	if err := decoder.Decode(&user); err != nil {
-// 		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
-// 		return
-// 	}
-// 	defer r.Body.Close()
+func (handler *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
-// 	// Extract parameters.
-// 	email := r.FormValue("email")
-// 	password := r.FormValue("password")
+	// Cast user info from request to user object.
+	var user model.User
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&user); err != nil {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
 
-// 	// Create new uuid for user.
-// 	var newUUID string
-// 	newUUID, uuidErr := util.CreateUUID()
-// 	if uuidErr != nil {
-// 		respondWithError(w, http.StatusInternalServerError, uuidErr.Error())
-// 		return
-// 	}
-// 	user.UUID = newUUID
+	// Extract and validate parameters.
+	// email := r.FormValue("email")
+	// password := r.FormValue("password")
 
-// 	// Generate new token.
-// 	token = model.Token{
-// 		UUID: user.UUID,
-// 		Exp:  time.Now().Add(time.Hour * 24).Unix()}
+	// Create new uuid for user.
+	var newUUID string
+	newUUID, uuidErr := util.CreateUUID()
+	if uuidErr != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, uuidErr.Error())
+		return
+	}
+	user.UUID = newUUID
 
-// 	// Encode into string.
-// 	tokenString, encodeErr := token.Encode("secret", claims)
-// 	if encodeErr != nil {
-// 		respondWithError(w, http.StatusInternalServerError, encodeErr.Error())
-// 		return
-// 	}
-// 	user.Token = tokenString
+	// Generate new token.
+	token := model.Token{
+		UUID: user.UUID,
+		Exp:  time.Now().Add(time.Hour * 24).Unix()}
 
-// 	if err := user.CreateUser(app.DB); err != nil {
-// 		respondWithError(w, http.StatusInternalServerError, err.Error())
-// 		return
-// 	}
+	// Encode into string.
+	tokenString, encodeErr := token.Encode()
+	if encodeErr != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, encodeErr.Error())
+		return
+	}
 
-// 	responseJSON := make(map[string]string)
-// 	responseJSON["token"] = user.Token
-// 	respondWithJSON(w, http.StatusCreated, responseJSON)
-// }
+	// Create new user.
+	if err := user.CreateUser(handler.DB); err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
-// func (app *App) updateUser(w http.ResponseWriter, r *http.Request) {
+	responseJSON := make(map[string]string)
+	responseJSON["token"] = tokenString
+	util.RespondWithJSON(w, http.StatusCreated, responseJSON)
+}
 
-// 	// Validate token.
-// 	tokenHeader := r.Header.Get("access_token")
-// 	var token model.Token
-// 	var tokenErr error
-// 	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
-// 		respondWithError(w, http.StatusUnauthorized, "Invalid token")
-// 		return
-// 	}
+func (handler *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 
-// 	// Extract parameters.
-// 	email := r.FormValue("email")
+	// Extract and validate parameters.
+	email := r.FormValue("email")
+	password := r.FormValue("password")
 
-// 	// Cast user info from request to user object.
-// 	var user model.User
-// 	decoder := json.NewDecoder(r.Body)
-// 	if err := decoder.Decode(&user); err != nil {
-// 		respondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
-// 		return
-// 	}
-// 	defer r.Body.Close()
+	// Fetch user instance.
+	var user model.User
+	if err := user.GetUserByEmail(handler.DB); err != nil {
+		util.RespondWithError(w, http.StatusNonAuthoritativeInfo, err.Error())
+	}
 
-// 	user.uuid = token.uuid
+	// Generate new token.
+	token := model.Token{
+		UUID: user.UUID,
+		Exp:  time.Now().Add(time.Hour * 24).Unix()}
 
-// 	if err := user.UpdateUser(app.DB); err != nil {
-// 		respondWithError(w, http.StatusInternalServerError, err.Error())
-// 		return
-// 	}
+	// Encode into string.
+	tokenString, encodeErr := token.Encode()
+	if encodeErr != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, encodeErr.Error())
+		return
+	}
 
-// 	responseJSON := make(map[string]string)
-// 	responseJSON["token"] = token.Encode()
-// 	respondWithJSON(w, http.StatusOK, responseJSON)
-// }
+	responseJSON := make(map[string]string)
+	responseJSON["token"] = tokenString
+	util.RespondWithJSON(w, http.StatusCreated, responseJSON)
+}
 
-// func (app *App) deleteUser(w http.ResponseWriter, r *http.Request) {
-// 	vars := mux.Vars(r)
-// 	id, err := strconv.Atoi(vars["id"])
-// 	if err != nil {
-// 		respondWithError(w, http.StatusBadRequest, "Invalid User ID")
-// 		return
-// 	}
-// 	user := model.User{ID: id}
-// 	if err := user.DeleteUser(app.DB); err != nil {
-// 		respondWithError(w, http.StatusInternalServerError, err.Error())
-// 		return
-// 	}
-// 	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
-// }
+func (handler *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+
+	// Validate token.
+	tokenHeader := r.Header.Get("access_token")
+	var token *model.Token
+	var tokenErr error
+	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	// Extract and validate parameters.
+	email := r.FormValue("email")
+
+	// Cast user info from request to user object.
+	var user model.User
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&user); err != nil {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
+		return
+	}
+	defer r.Body.Close()
+
+	if err := user.UpdateUser(handler.DB); err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	responseJSON := make(map[string]string)
+	tokenString, encodeErr := token.Encode()
+	if encodeErr != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, encodeErr.Error())
+		return
+	}
+	responseJSON["token"] = tokenString
+	util.RespondWithJSON(w, http.StatusOK, responseJSON)
+}
+
+func (handler *UserHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
+	// Validate token.
+	tokenHeader := r.Header.Get("access_token")
+	var token *model.Token
+	var tokenErr error
+	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	// Delete
+	user := model.User{UUID: token.UUID}
+	if err := user.DeleteUser(handler.DB); err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	util.RespondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+}

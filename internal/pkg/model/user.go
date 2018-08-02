@@ -16,6 +16,11 @@ func (user *User) GetUser(db *sql.DB) error {
 	return db.QueryRow(statement).Scan(&user.Email)
 }
 
+func (user *User) GetUserByEmail(db *sql.DB) error {
+	statement := fmt.Sprintf("SELECT uuid FROM users WHERE email=%s", user.Email)
+	return db.QueryRow(statement).Scan(&user.Email)
+}
+
 func (user *User) UpdateUser(db *sql.DB) error {
 	statement := fmt.Sprintf("UPDATE users SET email='%s' WHERE uuid=%s", user.Email, user.UUID)
 	_, err := db.Exec(statement)

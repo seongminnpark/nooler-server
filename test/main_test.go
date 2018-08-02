@@ -84,16 +84,16 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 func TestGetNonExistentUser(t *testing.T) {
 	clearTable()
 
-	req, _ := http.NewRequest("GET", "/user/42", nil)
+	req, _ := http.NewRequest("GET", "/user", nil)
 	response := executeRequest(req)
 
-	checkResponseCode(t, http.StatusNotFound, response.Code)
+	checkResponseCode(t, http.StatusUnauthorized, response.Code)
 
 	var m map[string]string
 	json.Unmarshal(response.Body.Bytes(), &m)
 
-	if m["error"] != "User not found" {
-		t.Errorf("Expected the 'error' key of the response to be set to 'User not found'. Got '%s'", m["error"])
+	if m["error"] != "Invalid token" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid token'. Got '%s'", m["error"])
 	}
 }
 
@@ -176,8 +176,7 @@ func TestUpdateUser(t *testing.T) {
 
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
-	fmt.Println(originalUser)
-	fmt.Println(m)
+
 	if m["id"] != originalUser["id"] {
 		t.Errorf("Expected the id to remain the same (%v). Got %v", originalUser["id"], m["id"])
 	}
