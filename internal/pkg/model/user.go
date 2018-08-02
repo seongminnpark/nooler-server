@@ -22,6 +22,11 @@ type LoginForm struct {
 	Password string `json:"password"`
 }
 
+type ProfileForm struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (user *User) GetUser(db *sql.DB) error {
 	statement := fmt.Sprintf("SELECT email, password_hash FROM User WHERE uuid='%s'", user.UUID)
 	return db.QueryRow(statement).Scan(&user.Email, &user.PasswordHash)

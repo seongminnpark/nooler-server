@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
@@ -37,7 +36,6 @@ func (token *Token) Decode(tokenString string) error {
 	})
 
 	if parseErr != nil {
-		fmt.Println(parseErr.Error())
 		return parseErr
 	}
 
@@ -65,10 +63,9 @@ func (token *Token) FromTokenObject(jwtToken *jwt.Token) error {
 	// }
 
 	// Extract uuid.
-	if uuid, ok := claims["UUID"].(string); ok {
+	if uuid, ok := claims["uuid"].(string); ok {
 		token.UUID = uuid
 	} else {
-		fmt.Println(claims)
 		return errors.New("UUID not valid")
 	}
 

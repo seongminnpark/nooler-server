@@ -161,28 +161,38 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cast user info from request to user object.
-	var user model.User
+	// Cast user info from request to form object.
+	var form model.ProfileForm
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&user); err != nil {
-		util.RespondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
+	if err := decoder.Decode(&form); err != nil {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	defer r.Body.Close()
 
 	// Check if new info is valid.
+	if !util.ValidEmail(form.Email) {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid email")
+		return
+	}
+
+	if !util.ValidPassword(form.Password) {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid password")
+		return
+	}
 
 	// Check if new email already exists.
-	if user.Email != "" && existingUser.Email != user.Email {
+	if existingUser.Email != form.Email {
 		var userWithEmail model.User
-		if err := userWithEmail.GetUserByEmail(handler.DB); err != nil {
+		userWithEmail.Email = form.Email
+		if err := userWithEmail.GetUserByEmail(handler.DB); err == nil {
 			util.RespondWithError(w, http.StatusBadRequest, "Email already exists")
 			return
 		}
 	}
 
 	// Update user.
-	if err := user.UpdateUser(handler.DB); err != nil {
+	if err := existingUser.UpdateUser(handler.DB); err != nil {
 		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
