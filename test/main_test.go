@@ -49,7 +49,7 @@ func clearTable() {
 }
 
 const tableCreationQuery = `
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE IF NOT EXISTS User
 (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	email VARCHAR(50) NOT NULL,

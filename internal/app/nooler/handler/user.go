@@ -41,6 +41,10 @@ func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
+	// Extract and validate parameters.
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+
 	// Cast user info from request to user object.
 	var user model.User
 	decoder := json.NewDecoder(r.Body)
@@ -50,9 +54,13 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	// Extract and validate parameters.
-	// email := r.FormValue("email")
-	// password := r.FormValue("password")
+	// Chcek if user by email already exists.
+	var existingUser model.User
+	existingUser.Email = email
+	if err := existingUser.GetUserByEmail(handler.DB); err == nil {
+		util.RespondWithError(w, http.StatusUnauthorized, "Email already exists")
+		return
+	}
 
 	// Create new uuid for user.
 	var newUUID string
@@ -62,6 +70,14 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.UUID = newUUID
+
+	// Create password hash for user.
+	passwordHash, err := util.SaltAndHashPassword(password)
+	if err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	user.PasswordHash = passwordHash
 
 	// Generate new token.
 	token := model.Token{
@@ -97,11 +113,13 @@ func (handler *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user.Email = email
 	if err := user.GetUserByEmail(handler.DB); err != nil {
 		util.RespondWithError(w, http.StatusNonAuthoritativeInfo, "Wrong email")
+		return
 	}
 
 	// Check if password hashes match.
 	if !util.CompareHashAndPassword(user.PasswordHash, password) {
 		util.RespondWithError(w, http.StatusUnauthorized, "Wrong password")
+		return
 	}
 
 	// Generate new token.
