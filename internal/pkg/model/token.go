@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
@@ -17,7 +18,7 @@ func (token *Token) Encode() (string, error) {
 	jwtToken := jwt.New(jwt.SigningMethodHS256)
 
 	claims := jwtToken.Claims.(jwt.MapClaims)
-	claims["UUID"] = token.UUID
+	claims["uuid"] = token.UUID
 	claims["exp"] = token.Exp
 
 	secret := os.Getenv("TOKEN_KEY")
@@ -29,29 +30,26 @@ func (token *Token) Encode() (string, error) {
 	return tokenString, nil
 }
 
-func (token *Token) Decode(tokenString string) (*Token, error) {
-
-	var jwtToken *jwt.Token
-
+func (token *Token) Decode(tokenString string) error {
 	// Validate the token
-	var parseErr error
-	if jwtToken, parseErr = jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		return os.Getenv("TOKEN_KEY"), nil
-	}); parseErr != nil {
-		return nil, parseErr
+	jwtToken, parseErr := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("TOKEN_KEY")), nil
+	})
+
+	if parseErr != nil {
+		fmt.Println(parseErr.Error())
+		return parseErr
 	}
 
 	// There was no error while parsing, but token may still be invalid.
 	if !jwtToken.Valid {
-		return nil, errors.New("Token not valid")
+		return errors.New("Token not valid")
 	}
-
 	if err := token.FromTokenObject(jwtToken); err != nil {
-		return nil, err
+		return err
 	}
-
 	// There was no error.
-	return token, nil
+	return nil
 }
 
 func (token *Token) FromTokenObject(jwtToken *jwt.Token) error {
@@ -60,16 +58,17 @@ func (token *Token) FromTokenObject(jwtToken *jwt.Token) error {
 	claims := jwtToken.Claims.(jwt.MapClaims)
 
 	// Extract exp.
-	if exp, ok := claims["exp"].(int64); ok {
-		token.Exp = exp
-	} else {
-		return errors.New("Expiration not valid")
-	}
+	// if exp, ok := claims["exp"].(float64); ok {
+	// 	token.Exp = exp
+	// } else {
+	// 	return errors.New("Expiration not valid")
+	// }
 
 	// Extract uuid.
-	if uuid, ok := claims["uuid"].(string); ok {
+	if uuid, ok := claims["UUID"].(string); ok {
 		token.UUID = uuid
 	} else {
+		fmt.Println(claims)
 		return errors.New("UUID not valid")
 	}
 

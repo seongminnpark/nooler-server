@@ -19,8 +19,7 @@ func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	// Extract uuid from token.
 	var token *model.Token
-	var tokenErr error
-	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+	if err := token.Decode(tokenHeader); err != nil {
 		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
@@ -41,14 +40,10 @@ func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
-	// Extract and validate parameters.
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-
-	// Cast user info from request to user object.
-	var user model.User
+	// Cast user info from request to form object.
+	var form model.SignupForm
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&user); err != nil {
+	if err := decoder.Decode(&form); err != nil {
 		util.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
@@ -56,28 +51,28 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Chcek if user by email already exists.
 	var existingUser model.User
-	existingUser.Email = email
+	existingUser.Email = form.Email
 	if err := existingUser.GetUserByEmail(handler.DB); err == nil {
 		util.RespondWithError(w, http.StatusUnauthorized, "Email already exists")
 		return
 	}
 
 	// Create new uuid for user.
-	var newUUID string
-	newUUID, uuidErr := util.CreateUUID()
+	uuid, uuidErr := util.CreateUUID()
 	if uuidErr != nil {
 		util.RespondWithError(w, http.StatusInternalServerError, uuidErr.Error())
 		return
 	}
-	user.UUID = newUUID
 
 	// Create password hash for user.
-	passwordHash, err := util.SaltAndHashPassword(password)
+	passwordHash, err := util.SaltAndHashPassword(form.Password)
 	if err != nil {
 		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	user.PasswordHash = passwordHash
+
+	// Create new user instance.
+	user := model.User{UUID: uuid, Email: form.Email, PasswordHash: passwordHash}
 
 	// Generate new token.
 	token := model.Token{
@@ -104,20 +99,25 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (handler *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
-	// Extract and validate parameters.
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+	// Cast user info from request to form object.
+	var form model.LoginForm
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&form); err != nil {
+		util.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
 
 	// Fetch user instance.
 	var user model.User
-	user.Email = email
+	user.Email = form.Email
 	if err := user.GetUserByEmail(handler.DB); err != nil {
 		util.RespondWithError(w, http.StatusNonAuthoritativeInfo, "Wrong email")
 		return
 	}
 
 	// Check if password hashes match.
-	if !util.CompareHashAndPassword(user.PasswordHash, password) {
+	if !util.CompareHashAndPassword(user.PasswordHash, form.Password) {
 		util.RespondWithError(w, http.StatusUnauthorized, "Wrong password")
 		return
 	}
@@ -143,9 +143,8 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Validate token.
 	tokenHeader := r.Header.Get("access_token")
-	var token *model.Token
-	var tokenErr error
-	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+	var token model.Token
+	if err := token.Decode(tokenHeader); err != nil {
 		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
@@ -202,9 +201,9 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// Validate token.
 	tokenHeader := r.Header.Get("access_token")
-	var token *model.Token
-	var tokenErr error
-	if token, tokenErr = token.Decode(tokenHeader); tokenErr != nil {
+
+	var token model.Token
+	if err := token.Decode(tokenHeader); err != nil {
 		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
@@ -215,5 +214,6 @@ func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	util.RespondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }

@@ -12,24 +12,34 @@ type User struct {
 	PasswordHash string `json:"password_hash"`
 }
 
+type SignupForm struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginForm struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (user *User) GetUser(db *sql.DB) error {
-	statement := fmt.Sprintf("SELECT email, password_hash FROM User WHERE uuid=%s", user.UUID)
+	statement := fmt.Sprintf("SELECT email, password_hash FROM User WHERE uuid='%s'", user.UUID)
 	return db.QueryRow(statement).Scan(&user.Email, &user.PasswordHash)
 }
 
 func (user *User) GetUserByEmail(db *sql.DB) error {
-	statement := fmt.Sprintf("SELECT uuid, password_hash FROM User WHERE email=%s", user.Email)
+	statement := fmt.Sprintf("SELECT uuid, password_hash FROM User WHERE email='%s'", user.Email)
 	return db.QueryRow(statement).Scan(&user.UUID, &user.PasswordHash)
 }
 
 func (user *User) UpdateUser(db *sql.DB) error {
-	statement := fmt.Sprintf("UPDATE User SET email='%s' WHERE uuid=%s", user.Email, user.UUID)
+	statement := fmt.Sprintf("UPDATE User SET email='%s' WHERE uuid='%s'", user.Email, user.UUID)
 	_, err := db.Exec(statement)
 	return err
 }
 
 func (user *User) DeleteUser(db *sql.DB) error {
-	statement := fmt.Sprintf("DELETE FROM User WHERE uuid=%s", user.UUID)
+	statement := fmt.Sprintf("DELETE FROM User WHERE uuid='%s'", user.UUID)
 	_, err := db.Exec(statement)
 	return err
 }
