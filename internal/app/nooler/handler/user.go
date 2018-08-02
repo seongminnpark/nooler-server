@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/seongminnpark/nooler-server/internal/pkg/model"
@@ -15,7 +14,7 @@ type UserHandler struct {
 	DB *sql.DB
 }
 
-func (handler *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	tokenHeader := r.Header.Get("access_token")
 
 	// Extract uuid from token.
@@ -40,27 +39,7 @@ func (handler *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	util.RespondWithJSON(w, http.StatusOK, user)
 }
 
-func (handler *UserHandler) getUsers(w http.ResponseWriter, r *http.Request) {
-	count, _ := strconv.Atoi(r.FormValue("count"))
-	start, _ := strconv.Atoi(r.FormValue("start"))
-
-	if count > 10 || count < 1 {
-		count = 10
-	}
-
-	if start < 0 {
-		start = 0
-	}
-
-	users, err := model.GetUsers(handler.DB, start, count)
-	if err != nil {
-		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	util.RespondWithJSON(w, http.StatusOK, users)
-}
-
-func (handler *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Cast user info from request to user object.
 	var user model.User
@@ -107,7 +86,7 @@ func (handler *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	util.RespondWithJSON(w, http.StatusCreated, responseJSON)
 }
 
-func (handler *UserHandler) login(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Extract and validate parameters.
 	email := r.FormValue("email")
@@ -115,8 +94,14 @@ func (handler *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch user instance.
 	var user model.User
+	user.Email = email
 	if err := user.GetUserByEmail(handler.DB); err != nil {
-		util.RespondWithError(w, http.StatusNonAuthoritativeInfo, err.Error())
+		util.RespondWithError(w, http.StatusNonAuthoritativeInfo, "Wrong email")
+	}
+
+	// Check if password hashes match.
+	if !util.CompareHashAndPassword(user.PasswordHash, password) {
+		util.RespondWithError(w, http.StatusUnauthorized, "Wrong password")
 	}
 
 	// Generate new token.
@@ -125,9 +110,9 @@ func (handler *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 		Exp:  time.Now().Add(time.Hour * 24).Unix()}
 
 	// Encode into string.
-	tokenString, encodeErr := token.Encode()
-	if encodeErr != nil {
-		util.RespondWithError(w, http.StatusInternalServerError, encodeErr.Error())
+	tokenString, err := token.Encode()
+	if err != nil {
+		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -136,7 +121,7 @@ func (handler *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 	util.RespondWithJSON(w, http.StatusCreated, responseJSON)
 }
 
-func (handler *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Validate token.
 	tokenHeader := r.Header.Get("access_token")
@@ -147,8 +132,17 @@ func (handler *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract and validate parameters.
-	email := r.FormValue("email")
+	// Fetch user corresponding to token.
+	existingUser := model.User{UUID: token.UUID}
+	if err := existingUser.GetUser(handler.DB); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			util.RespondWithError(w, http.StatusNotFound, "User not found")
+		default:
+			util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
 
 	// Cast user info from request to user object.
 	var user model.User
@@ -159,11 +153,24 @@ func (handler *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Check if new info is valid.
+
+	// Check if new email already exists.
+	if user.Email != "" && existingUser.Email != user.Email {
+		var userWithEmail model.User
+		if err := userWithEmail.GetUserByEmail(handler.DB); err != nil {
+			util.RespondWithError(w, http.StatusBadRequest, "Email already exists")
+			return
+		}
+	}
+
+	// Update user.
 	if err := user.UpdateUser(handler.DB); err != nil {
 		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Construct and send response.
 	responseJSON := make(map[string]string)
 	tokenString, encodeErr := token.Encode()
 	if encodeErr != nil {
@@ -174,7 +181,7 @@ func (handler *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	util.RespondWithJSON(w, http.StatusOK, responseJSON)
 }
 
-func (handler *UserHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// Validate token.
 	tokenHeader := r.Header.Get("access_token")
 	var token *model.Token

@@ -33,11 +33,10 @@ func (app *App) Run(addr string) {
 }
 
 func (app *App) initializeRoutes() {
-	userHandler := handler.UserHandler{db: app.DB}
-	app.Router.HandleFunc("/users", userHandler.getUsers).Methods("GET")
-	app.Router.HandleFunc("/user", userHandler.createUser).Methods("POST")
-	app.Router.HandleFunc("/user", userHandler.getUser).Methods("GET")
-	app.Router.HandleFunc("/user", userHandler.updateUser).Methods("PUT")
-	app.Router.HandleFunc("/user", userHandler.deleteUser).Methods("DELETE")
-	app.Router.HandleFunc("/login", userHandler.login).Methods("POST")
+	userHandler := handler.UserHandler{DB: app.DB}
+	app.Router.HandleFunc("/user", userHandler.CreateUser).Methods("POST")
+	app.Router.HandleFunc("/user", userHandler.GetUser).Methods("GET")
+	app.Router.HandleFunc("/user", userHandler.UpdateUser).Methods("PUT")
+	app.Router.HandleFunc("/user", userHandler.DeleteUser).Methods("DELETE")
+	app.Router.HandleFunc("/login", userHandler.Login).Methods("POST")
 }

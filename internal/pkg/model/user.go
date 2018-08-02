@@ -6,19 +6,20 @@ import (
 )
 
 type User struct {
-	ID    int    `json:"id"`
-	UUID  string `json:"uuid"`
-	Email string `json:"email"`
+	ID           int    `json:"id"`
+	UUID         string `json:"uuid"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
 }
 
 func (user *User) GetUser(db *sql.DB) error {
-	statement := fmt.Sprintf("SELECT email FROM users WHERE uuid=%s", user.UUID)
-	return db.QueryRow(statement).Scan(&user.Email)
+	statement := fmt.Sprintf("SELECT email, password_hash FROM users WHERE uuid=%s", user.UUID)
+	return db.QueryRow(statement).Scan(&user.Email, &user.PasswordHash)
 }
 
 func (user *User) GetUserByEmail(db *sql.DB) error {
-	statement := fmt.Sprintf("SELECT uuid FROM users WHERE email=%s", user.Email)
-	return db.QueryRow(statement).Scan(&user.Email)
+	statement := fmt.Sprintf("SELECT uuid, password_hash FROM users WHERE email=%s", user.Email)
+	return db.QueryRow(statement).Scan(&user.UUID, &user.PasswordHash)
 }
 
 func (user *User) UpdateUser(db *sql.DB) error {
@@ -45,22 +46,4 @@ func (user *User) CreateUser(db *sql.DB) error {
 		return err
 	}
 	return nil
-}
-
-func GetUsers(db *sql.DB, start, count int) ([]User, error) {
-	statement := fmt.Sprintf("SELECT id, email FROM users LIMIT %d OFFSET %d", count, start)
-	rows, err := db.Query(statement)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	users := []User{}
-	for rows.Next() {
-		var user User
-		if err := rows.Scan(&user.ID, &user.Email); err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-	return users, nil
 }

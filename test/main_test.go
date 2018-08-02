@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS users
 (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	email VARCHAR(50) NOT NULL,
-	uuid VARCHAR(36) NOT NULL
+	uuid VARCHAR(36) NOT NULL,
+	password_hash VARCHAR(64) NOT NULL  
 )`
 
 func TestEmptyTable(t *testing.T) {
