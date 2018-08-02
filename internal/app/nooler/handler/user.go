@@ -203,6 +203,9 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update user.
+	existingUser.Email = form.Email
+
+	// Store updates user in database.
 	if err := existingUser.UpdateUser(handler.DB); err != nil {
 		util.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
