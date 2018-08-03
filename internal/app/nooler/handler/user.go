@@ -18,7 +18,7 @@ func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	tokenHeader := r.Header.Get("access_token")
 
 	// Extract uuid from token.
-	var token *model.Token
+	var token model.Token
 	if err := token.Decode(tokenHeader); err != nil {
 		util.RespondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
@@ -35,7 +35,12 @@ func (handler *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	util.RespondWithJSON(w, http.StatusOK, user)
+
+	responseJSON := make(map[string]string)
+	responseJSON["token"] = tokenHeader
+	responseJSON["uuid"] = user.UUID
+	responseJSON["email"] = user.Email
+	util.RespondWithJSON(w, http.StatusOK, responseJSON)
 }
 
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
