@@ -13,3 +13,7 @@ func CreateUUID() (string, error) {
 
 	return newUUID.String(), nil
 }
+
+func ValidUUID(uuid string) bool {
+	return true
+}

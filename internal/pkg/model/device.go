@@ -11,6 +11,10 @@ type Device struct {
 	Owner string `json:"owner"`
 }
 
+type AddDeviceForm struct {
+	Owner string `json:"owner"`
+}
+
 func (device *Device) GetDevice(db *sql.DB) error {
 	statement := fmt.Sprintf("SELECT owner_hash FROM Device WHERE uuid='%s'", device.UUID)
 	return db.QueryRow(statement).Scan(&device.Owner)
