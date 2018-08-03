@@ -39,4 +39,7 @@ func (app *App) initializeRoutes() {
 	app.Router.HandleFunc("/user", userHandler.UpdateUser).Methods("PUT")
 	app.Router.HandleFunc("/user", userHandler.DeleteUser).Methods("DELETE")
 	app.Router.HandleFunc("/login", userHandler.Login).Methods("POST")
+
+	deviceHandler := handler.DeviceHandler{DB: app.DB}
+	app.Router.HandleFunc("/device", deviceHandler.CreateDevice).Methods("POST")
 }

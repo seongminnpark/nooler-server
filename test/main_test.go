@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 }
 
 func ensureTableExists() {
-	if _, err := app.DB.Exec(tableCreationQuery); err != nil {
+	if _, err := app.DB.Exec(userTableCreationQuery); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -48,13 +48,31 @@ func clearTable() {
 	app.DB.Exec("ALTER TABLE users AUTO_INCREMENT = 1")
 }
 
-const tableCreationQuery = `
+const userTableCreationQuery = `
 CREATE TABLE IF NOT EXISTS User
 (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	email VARCHAR(50) NOT NULL,
 	uuid VARCHAR(36) NOT NULL,
 	password_hash VARCHAR(64) NOT NULL  
+)`
+
+const deviceTableCreationQuery = `
+CREATE TABLE IF NOT EXISTS Device
+(
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	owner VARCHAR(36) NOT NULL,
+	uuid VARCHAR(36) NOT NULL
+)`
+
+const actionTableCreationQuery = `
+CREATE TABLE IF NOT EXISTS Action
+(
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	uuid VARCHAR(36) NOT NULL,
+	user VARCHAR(36) NOT NULL,
+	device VARCHAR(36) NOT NULL,
+	active BIT NOT NULL
 )`
 
 func TestEmptyTable(t *testing.T) {
