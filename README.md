@@ -2,7 +2,7 @@
 Remote Alarm System
 
 ## Setup
-Run mysql server:
+Run mysql server (or have it run at strtup):
 ```
 sudo service mysql start
 ```
