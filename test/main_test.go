@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS Device
 (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	owner VARCHAR(36) NOT NULL,
-	uuid VARCHAR(36) NOT NULL
+	uuid VARCHAR(36) NOT NULL,
+	location TEXT NOT NULL
 )`
 
 const actionTableCreationQuery = `
