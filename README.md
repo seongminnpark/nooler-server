@@ -1,5 +1,5 @@
 # nooler-server
-Remote Alarm System
+Remote alarm system (punch a button in your room and someone gets notified. Also works with smartwatches).
 
 ## Setup
 Run mysql server (or have it run at startup):
