@@ -42,4 +42,5 @@ func (app *App) initializeRoutes() {
 
 	deviceHandler := handler.DeviceHandler{DB: app.DB}
 	app.Router.HandleFunc("/device", deviceHandler.CreateDevice).Methods("POST")
+	app.Router.HandleFunc("/device", deviceHandler.GetDevice).Methods("GET")
 }
